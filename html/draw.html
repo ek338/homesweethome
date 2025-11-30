@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>그리기</title>
+
+  <link rel="stylesheet" href="../assets/css/draw.css" />
+</head>
+
+<body class="draw-body">
+
+  <header class="draw-header">
+    <button class="back-btn" onclick="history.back()">←</button>
+    <h1>그리기</h1>
+    <button id="saveBtn" class="save-btn">저장</button>
+  </header>
+
+  <main class="draw-main">
+    <aside class="palette">
+      <div class="color black" data-color="#000"></div>
+      <div class="color gray" data-color="#777"></div>
+      <div class="color lightgray" data-color="#bbb"></div>
+      <div class="color red" data-color="#ff4b4b"></div>
+      <div class="color orange" data-color="#ff8a3d"></div>
+      <div class="color yellow" data-color="#ffd93d"></div>
+      <div class="color green" data-color="#5ac85a"></div>
+      <div class="color blue" data-color="#4a90e2"></div>
+      <div class="color purple" data-color="#b35be2"></div>
+    </aside>
+
+    <div class="canvas-wrap">
+      <canvas id="drawCanvas"></canvas>
+    </div>
+
+    <aside class="tools">
+      <button class="tool-btn" data-tool="pen">✏ </button>
+      <button class="tool-btn" data-tool="eraser">🩹 </button>
+      <button class="tool-btn" id="undoBtn">↺</button>
+      <button class="tool-btn" id="redoBtn">↻</button>
+      <button class="tool-btn" id="clearBtn">🗑</button>
+    </aside>
+
+  </main>
+
+  <script src="../assets/js/draw.js"></script>
+
+</body>
+</html>
+

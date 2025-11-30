@@ -1,0 +1,72 @@
+body, .button,.btn {
+  font-family: "Jua", sans-serif;
+  font-style: normal;
+}
+h1,h2,h3,h4,h5,h6 {
+  font-family: "Bagel Fat One", system-ui;
+  font-style: normal;
+}
+
+table{
+    position: absolute;
+    top:50%;
+    left:50%;
+    transform: translate(-50%,-50%);
+    width: 280px;
+    height: 250px;
+    margin: 0;
+    font-size: 15px;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.15);
+}
+input[type="text"], input[type="password"] {
+    width: 250px;
+    height: 32px;
+    font-size: 15px;
+    border: 0;
+    border-radius: 15px;
+    outline: none;
+    padding-left: 10px;
+    background-color: rgb(233,233,233);
+}
+.btn {
+    width: 263px;
+    height: 32px;
+    font-size: 15px;
+    border: 0;
+    border-radius: 15px;
+    outline: none;
+    padding-left: 10px;
+    background-color: rgb(212, 212, 212);
+    cursor: pointer;
+}
+.btn:active {
+    width: 263px;
+    height: 32px;
+    font-size: 15px;
+    border: 0;
+    border-radius: 15px;
+    outline: none;
+    padding-left: 10px;
+    background-color: rgb(115, 115, 115);
+}
+    
+.join_link {
+    text-align: left;
+    padding-left: 5px;
+    padding-top: 8px;
+    font-size: 12px;
+}
+
+.join_link a{
+        font-size: 12px;
+        color: darkgray;
+        text-decoration-line: none;
+ 
+}
+
+.signup-link a:hover {
+    text-decoration: underline;
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin – User Management</title>
+    <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+
+<body>
+    <h1>회원 관리</h1>
+
+    <input type="text" id="searchInput" placeholder="아이디,이름,이메일 검색">
+    <button onclick="searchUser()">검색</button>
+
+    <table id="userTable" border="1">
+        <thead>
+            <tr>
+                <th>아이디</th>
+                <th>이름</th>
+                <th>이메일</th>
+                <th>생년월일</th>
+                <th>가입 날짜</th>
+                <th>최근 로그인 말짜</th>
+                <th>친구들</th>
+                <th>편집</th>
+                <th>삭제</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h2>사용자 편집</h2>
+
+            <label>이름</label>
+            <input id="editName" type="text">
+
+            <label>비밀번호</label>
+            <input id="editPw" type="text">
+
+            <label>이메일</label>
+            <input id="editEmail" type="text">
+
+            <label>생년월일</label>
+            <input id="editBirth" type="date">
+
+            <button onclick="saveEdit()">저장</button>
+            <button onclick="closeModal()">취소</button>
+        </div>
+    </div>
+
+    <script src="../assets/js/admin.js"></script>
+</body>
+</html>

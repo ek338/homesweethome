@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>프로필 수정</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/profile.css">
+</head>
+<body class="profile-body">
+
+  <div class="profile-card">
+    <h2>프로필 수정</h2>
+
+    <label>프로필 이름</label>
+    <input type="text" id="editName" placeholder="이름 입력">
+
+    <label>프로필 이모지</label>
+    <input type="text" id="editEmoji" placeholder="예: 😺 🐶 🐻">
+    <label>프로필 사진</label>
+    <input type="file" id="profileImgInput" accept="image/*">
+
+    <div class="img-box">
+    <img id="profilePreview" src="" alt="미리보기" class="preview-img">
+    </div>
+
+    <button id="saveProfileBtn" class="save-btn">저장하기</button>
+
+    <button id="backBtn" class="back-btn">← 돌아가기</button>
+  </div>
+
+  <script src="../assets/js/profile.js"></script>
+</body>
+</html>
