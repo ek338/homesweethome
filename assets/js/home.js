@@ -26,8 +26,8 @@ if (!location.pathname.toLowerCase().includes("home")) {
   const cp = document.getElementById("controlPanel");
   if (cp) cp.style.display = "none";
 }
+const USE_FIREBASE = false;
 
-// 초기 DOM 연동
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -41,6 +41,7 @@ const roomTabsContainer = document.getElementById("roomTabs");
 toggleFurnitureBtn?.addEventListener("click", () => {
   furniturePanel.classList.toggle("open");
 });
+
 // 유저 데이터
 let userId = localStorage.getItem("userId");
 if (!userId) {
@@ -54,7 +55,6 @@ const sharedRoomParam = urlParams.get("room");
 
 let roomOwnerId = sharedOwnerId || userId;
 
-// 유저 정보 로딩
 function getPlayerData() {
     return JSON.parse(localStorage.getItem("playerData")) || {
         name: "",
@@ -120,17 +120,17 @@ function getRoomName(n) {
 
 async function setRoomName(n, name) {
     localStorage.setItem(`roomName_${n}`, name);
-    await set(ref(db, `users/${roomOwnerId}/rooms/${n}/name`), name);
+    if (USE_FIREBASE) {
+        await set(ref(db, `users/${roomOwnerId}/rooms/${n}/name`), name);
+    }
 }
 
-// UI: 방 이름 표시 갱신
 function updateRoomInfo() {
     if (roomInfoEl) {
         roomInfoEl.textContent = `${currentRoom}번 방 - ${getRoomName(currentRoom)}`;
     }
 }
 
-// 방 탭 렌더링 
 function renderRoomTabs() {
     if (!roomTabsContainer) return;
 
@@ -158,7 +158,7 @@ function renderRoomTabs() {
     }
 }
 
-// 가구 저장 / 로딩
+// 가구 저장 
 function roomLayoutKey(n) {
     return `roomLayout_${roomOwnerId}_${n}`;
 }
@@ -182,7 +182,10 @@ function collectLayoutFromDOM() {
 async function saveCurrentRoomLayout() {
     const layout = collectLayoutFromDOM();
     localStorage.setItem(roomLayoutKey(currentRoom), JSON.stringify(layout));
-    await set(ref(db, `users/${roomOwnerId}/rooms/${currentRoom}/layout`), layout);
+
+    if (USE_FIREBASE) {
+        await set(ref(db, `users/${roomOwnerId}/rooms/${currentRoom}/layout`), layout);
+    }
 }
 
 function renderLayout(layout) {
@@ -191,6 +194,8 @@ function renderLayout(layout) {
 }
 
 async function loadRoomLayoutOnce(room) {
+    if (!USE_FIREBASE) return false;
+
     const snap = await get(ref(db, `users/${roomOwnerId}/rooms/${room}/layout`));
     if (snap.exists()) {
         renderLayout(snap.val());
@@ -207,6 +212,8 @@ function loadRoomLayoutFromLocal(room) {
 }
 
 function subscribeRoomRealtime(room) {
+    if (!USE_FIREBASE) return;
+
     if (currentRoomLayoutRef) off(currentRoomLayoutRef);
 
     const layoutRef = ref(db, `users/${roomOwnerId}/rooms/${room}/layout`);
@@ -374,16 +381,19 @@ function placeCustomFurniture(roomNumber, src) {
 }
 
 
-// Firebase 방 개수 동기화
 async function syncMaxRoomIndexFromFirebase() {
+    if (!USE_FIREBASE) return;
+
     const roomsRef = ref(db, `users/${roomOwnerId}/rooms`);
     const snap = await get(roomsRef);
+
     if (snap.exists()) {
         const nums = Object.keys(snap.val()).map(n => parseInt(n));
         maxRoomIndex = Math.max(...nums, maxRoomIndex);
         localStorage.setItem("totalRooms", maxRoomIndex);
     }
 }
+
 
 async function ensureDefaultRoom() {
     if (!localStorage.getItem("totalRooms")) {
@@ -395,13 +405,8 @@ async function ensureDefaultRoom() {
 
     const room1Ref = ref(db, `users/${roomOwnerId}/rooms/1`);
     const snap = await get(room1Ref);
-
-    if (!snap.exists()) {
-        await set(room1Ref, { name: "방 1", layout: [] });
-    }
 }
 
-// 초기 실행
 window.addEventListener("load", async () => {
     renderUserInfo();
 
@@ -421,7 +426,6 @@ window.addEventListener("load", async () => {
     await loadRoom(currentRoom);
 });
 
-// 방 CRUD 버튼
 document.getElementById("addRoomBtn").onclick = async () => {
     await saveCurrentRoomLayout();
     const newName = prompt("새로운 방 이름:", `방 ${maxRoomIndex + 1}`);
@@ -430,10 +434,12 @@ document.getElementById("addRoomBtn").onclick = async () => {
     maxRoomIndex++;
     localStorage.setItem("totalRooms", maxRoomIndex);
 
-    await set(ref(db, `users/${roomOwnerId}/rooms/${maxRoomIndex}`), {
-        name: newName,
-        layout: []
-    });
+    if (USE_FIREBASE) {
+        await set(ref(db, `users/${roomOwnerId}/rooms/${maxRoomIndex}`), {
+            name: newName,
+            layout: []
+        });
+    }
 
     localStorage.setItem(`roomName_${maxRoomIndex}`, newName);
 
@@ -447,10 +453,14 @@ document.getElementById("addRoomBtn").onclick = async () => {
     slideRoom(1);
 };
 
+
 document.getElementById("deleteRoomBtn").onclick = async () => {
     if (!confirm(`${currentRoom}번 방을 삭제할까요?`)) return;
 
-    await remove(ref(db, `users/${roomOwnerId}/rooms/${currentRoom}`));
+     if (USE_FIREBASE) {
+        await remove(ref(db, `users/${roomOwnerId}/rooms/${currentRoom}`));
+    }
+    
     localStorage.removeItem(roomLayoutKey(currentRoom));
     localStorage.removeItem(`roomName_${currentRoom}`);
 

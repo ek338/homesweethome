@@ -35,7 +35,7 @@ imgInput.addEventListener("change", (e) => {
 
     const reader = new FileReader();
     reader.onload = () => {
-        preview.src = reader.result; // base64
+        preview.src = reader.result; 
     };
     reader.readAsDataURL(file);
 });
