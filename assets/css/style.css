@@ -1,4 +1,4 @@
-/*fonts*/
+
 body {
   font-family: "Jua", sans-serif;
   font-style: normal;
@@ -7,13 +7,11 @@ h1,h2,h3,h4,h5,h6 {
   font-family: "Bagel Fat One", system-ui;
   font-style: normal;
 }
-
-/*main 화면 구성 */
 header {
     position: relative;
     height: 100vh;            
     width: 100%;
-    background-image: url("../img/main/web1.jpg");
+    background-image: url("img/main/web1.jpg");
     background-size: cover;   
     background-repeat: no-repeat;
     background-position: center;
