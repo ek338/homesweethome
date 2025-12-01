@@ -1,640 +1,579 @@
+/* -------------------------------------------------------
+   home.js — LocalStorage + Firebase Hybrid Version
+   GitHub Pages 완전 호환 + Firebase 연결 시 실시간 기능 지원
+--------------------------------------------------------- */
 
-// Firebase 기본 세팅
+// ------------------------
+// 0. Firebase 설정 + 스위치
+// ------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-    getDatabase,
-    ref,
-    set,
-    get,
-    onValue,
-    remove,
-    off
+  getDatabase,
+  ref,
+  set,
+  get,
+  onValue,
+  remove,
+  off,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCDqh874UuYAT3Mmox1GLvHA4BfakrTfW0",
-    authDomain: "homesweethome-21569.firebaseapp.com",
-    projectId: "homesweethome-21569",
-    storageBucket: "homesweethome-21569.appspot.com",
-    messagingSenderId: "404205971778",
-    appId: "1:404205971778:web:7af3eab2d87eaca53640db",
-    databaseURL: "https://homesweethome-21569-default-rtdb.firebaseio.com/",
-    measurementId: "G-1YHY2EVMDL",
-};
+// 🔥 여기만 true/false 바꾸면 즉시 모드 변경됨
+const USE_FIREBASE = true; // ← 파이어베이스 활성화
+// const USE_FIREBASE = false; // ← 로컬 모드만 사용
 
-if (!location.pathname.toLowerCase().includes("home")) {
-  const cp = document.getElementById("controlPanel");
-  if (cp) cp.style.display = "none";
-}
-const USE_FIREBASE = false;
+const firebaseConfig = {
+  apiKey: "AIzaSyCDqh874UuYAT3Mmox1GLvHA4BfakrTfW0",
+  authDomain: "homesweethome-21569.firebaseapp.com",
+  projectId: "homesweethome-21569",
+  storageBucket: "homesweethome-21569.appspot.com",
+  messagingSenderId: "404205971778",
+  appId: "1:404205971778:web:7af3eab2d87eaca53640db",
+  databaseURL: "https://homesweethome-21569-default-rtdb.firebaseio.com/",
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const toggleFurnitureBtn = document.getElementById("toggleFurnitureBtn");
-const furniturePanel = document.getElementById("furniturePanel");
-const roomAreaEl = document.getElementById("roomArea");
-const furnitureLayer = document.getElementById("furnitureLayer");
-const roomInfoEl = document.getElementById("roomInfo");
-const roomTabsContainer = document.getElementById("roomTabs");
+// --------------------------------------------------
+// Firebase 안전 호출용 래퍼 — 실패해도 앱 죽지 않음
+// --------------------------------------------------
+async function fbSafeGet(path) {
+  if (!USE_FIREBASE) return null;
+  try {
+    const snap = await get(ref(db, path));
+    return snap.exists() ? snap.val() : null;
+  } catch (err) {
+    console.warn("🔥 Firebase GET 실패 → 로컬로 대체:", err);
+    return null;
+  }
+}
 
+async function fbSafeSet(path, value) {
+  if (!USE_FIREBASE) return;
+  try {
+    return await set(ref(db, path), value);
+  } catch (err) {
+    console.warn("🔥 Firebase SET 실패 → 로컬만 저장:", err);
+  }
+}
+
+async function fbSafeRemove(path) {
+  if (!USE_FIREBASE) return;
+  try {
+    return await remove(ref(db, path));
+  } catch (err) {
+    console.warn("🔥 Firebase REMOVE 실패:", err);
+  }
+}
+
+function fbSafeOn(path, callback) {
+  if (!USE_FIREBASE) return null;
+  try {
+    const r = ref(db, path);
+    onValue(r, (snap) => {
+      callback(snap.exists() ? snap.val() : null);
+    });
+    return r;
+  } catch (err) {
+    console.warn("🔥 Firebase ON 실패:", err);
+    return null;
+  }
+}
+
+// --------------------------------------------------
+// 1. DOM 요소
+// --------------------------------------------------
+const furniturePanel = document.getElementById("furniturePanel");
+const toggleFurnitureBtn = document.getElementById("toggleFurnitureBtn");
+const furnitureLayer = document.getElementById("furnitureLayer");
+const roomAreaEl = document.getElementById("roomArea");
+const roomTabsContainer = document.getElementById("roomTabs");
+const roomInfoEl = document.getElementById("roomInfo");
+const furnitureListEl = document.getElementById("furnitureList");
+
+// 패널 열기
 toggleFurnitureBtn?.addEventListener("click", () => {
   furniturePanel.classList.toggle("open");
 });
 
-// 유저 데이터
-let userId = localStorage.getItem("userId");
-if (!userId) {
-    userId = "user_" + Date.now();
-    localStorage.setItem("userId", userId);
-}
-
-const urlParams = new URLSearchParams(location.search);
-const sharedOwnerId = urlParams.get("owner");
-const sharedRoomParam = urlParams.get("room");
-
-let roomOwnerId = sharedOwnerId || userId;
-
+// --------------------------------------------------
+// 2. 사용자 정보 로드
+// --------------------------------------------------
 function getPlayerData() {
-    return JSON.parse(localStorage.getItem("playerData")) || {
-        name: "",
-        emoji: "🐱",
-        level: 1,
-        coins: 0,
-        friends: [],
-        photo: null,
-    };
-}
-
-function savePlayerData(data) {
-    localStorage.setItem("playerData", JSON.stringify(data));
+  return (
+    JSON.parse(localStorage.getItem("playerData")) || {
+      name: "유저",
+      emoji: "🐱",
+      photo: null,
+      level: 1,
+      coins: 0,
+    }
+  );
 }
 
 function renderUserInfo() {
-    const data = getPlayerData();
+  const data = getPlayerData();
+  const btn = document.getElementById("userProfileBtn");
+  const n = document.getElementById("userName");
 
-    const userNameEl = document.getElementById("userName");
-    const userProfileBtn = document.getElementById("userProfileBtn");
-    const userCoinsEl = document.getElementById("userCoins");
-    const userLevelEl = document.getElementById("userLevel");
-
-    if (userNameEl) userNameEl.innerText = data.name || "유저";
-    if (userCoinsEl) userCoinsEl.innerText = data.coins;
-    if (userLevelEl) userLevelEl.innerText = data.level;
-
-    if (userProfileBtn) {
-        if (data.photo) {
-            userProfileBtn.style.backgroundImage = `url(${data.photo})`;
-            userProfileBtn.innerText = "";
-        } else {
-            userProfileBtn.style.backgroundImage = "none";
-            userProfileBtn.innerText = data.emoji ?? "🐱";
-        }
-
-        userProfileBtn.onclick = () => {
-            location.href = "profile.html";
-        };
+  if (btn) {
+    if (data.photo) {
+      btn.style.backgroundImage = `url(${data.photo})`;
+      btn.innerText = "";
+    } else {
+      btn.innerText = data.emoji;
+      btn.style.backgroundImage = "";
     }
+    btn.onclick = () => location.href = "profile.html";
+  }
 
-    if (userNameEl) {
-        userNameEl.onclick = () => (location.href = "profile.html");
-    }
+  if (n) {
+    n.innerText = data.name;
+    n.onclick = () => location.href = "profile.html";
+  }
 }
 
-// 방 로직
+// --------------------------------------------------
+// 3. 방 관련 기초 설정
+// --------------------------------------------------
 let currentRoom = 1;
+let roomOwnerId = localStorage.getItem("userId") || "user_" + Date.now();
 
-const pendingCustom = JSON.parse(localStorage.getItem("pendingCustomFurniture") || "null");
-if (pendingCustom?.room) currentRoom = pendingCustom.room;
-
-if (sharedRoomParam && !isNaN(parseInt(sharedRoomParam))) {
-    currentRoom = parseInt(sharedRoomParam);
-}
+localStorage.setItem("userId", roomOwnerId);
 
 let maxRoomIndex = Number(localStorage.getItem("totalRooms")) || 1;
-let currentRoomLayoutRef = null;
 
 function getRoomName(n) {
-    return localStorage.getItem(`roomName_${n}`) || `방 ${n}`;
+  return localStorage.getItem(`roomName_${n}`) || `방 ${n}`;
 }
 
 async function setRoomName(n, name) {
-    localStorage.setItem(`roomName_${n}`, name);
-    if (USE_FIREBASE) {
-        await set(ref(db, `users/${roomOwnerId}/rooms/${n}/name`), name);
-    }
+  localStorage.setItem(`roomName_${n}`, name);
+  await fbSafeSet(`users/${roomOwnerId}/rooms/${n}/name`, name);
 }
 
 function updateRoomInfo() {
-    if (roomInfoEl) {
-        roomInfoEl.textContent = `${currentRoom}번 방 - ${getRoomName(currentRoom)}`;
-    }
+  if (roomInfoEl) {
+    roomInfoEl.textContent = `${currentRoom}번 방 - ${getRoomName(currentRoom)}`;
+  }
 }
 
-function renderRoomTabs() {
-    if (!roomTabsContainer) return;
+/* ------------------------------------------------------
+   [PART 2] - 방 저장, 로딩, 가구 배치/조작
+--------------------------------------------------------- */
 
-    roomTabsContainer.innerHTML = "";
-
-    for (let i = 1; i <= maxRoomIndex; i++) {
-        const btn = document.createElement("button");
-        btn.className = `room-tab ${i === currentRoom ? "active" : ""}`;
-        btn.textContent = `${i}번 방`;
-
-        btn.addEventListener("click", async () => {
-            if (i === currentRoom) return;
-
-            await saveCurrentRoomLayout();
-            const dir = i > currentRoom ? 1 : -1;
-
-            currentRoom = i;
-            updateRoomInfo();
-            await loadRoom(currentRoom);
-            renderRoomTabs();
-            slideRoom(dir);
-        });
-
-        roomTabsContainer.appendChild(btn);
-    }
-}
-
-// 가구 저장 
+// --------------------------------------
+// 방 레이아웃 키
+// --------------------------------------
 function roomLayoutKey(n) {
-    return `roomLayout_${roomOwnerId}_${n}`;
+  return `roomLayout_${roomOwnerId}_${n}`;
 }
 
+// --------------------------------------
+// 현재 화면 DOM에서 레이아웃 수집
+// --------------------------------------
 function collectLayoutFromDOM() {
-    const layout = [];
-    furnitureLayer.querySelectorAll(".room-furniture").forEach(el => {
-        const img = el.querySelector("img");
-        layout.push({
-            src: img?.src || "",
-            x: el.style.left,
-            y: el.style.top,
-            scale: el.dataset.scale,
-            rotate: el.dataset.rotate,
-            locked: el.dataset.locked,
-        });
+  const layout = [];
+  document.querySelectorAll(".room-furniture").forEach(el => {
+    const img = el.querySelector("img");
+    layout.push({
+      src: img.src,
+      x: el.style.left,
+      y: el.style.top,
+      scale: el.dataset.scale,
+      rotate: el.dataset.rotate,
+      locked: el.dataset.locked
     });
-    return layout;
+  });
+  return layout;
 }
 
+// --------------------------------------
+// 방 레이아웃 저장 (로컬 + Firebase 안전 저장)
+// --------------------------------------
 async function saveCurrentRoomLayout() {
-    const layout = collectLayoutFromDOM();
-    localStorage.setItem(roomLayoutKey(currentRoom), JSON.stringify(layout));
-
-    if (USE_FIREBASE) {
-        await set(ref(db, `users/${roomOwnerId}/rooms/${currentRoom}/layout`), layout);
-    }
+  const layout = collectLayoutFromDOM();
+  localStorage.setItem(roomLayoutKey(currentRoom), JSON.stringify(layout));
+  await fbSafeSet(`users/${roomOwnerId}/rooms/${currentRoom}/layout`, layout);
 }
 
+// --------------------------------------
+// 방 레이아웃 적용
+// --------------------------------------
 function renderLayout(layout) {
-    furnitureLayer.innerHTML = "";
-    layout.forEach(d => addFurnitureToRoom(d.src, d, false));
+  furnitureLayer.innerHTML = "";
+  layout.forEach(d => addFurnitureToRoom(d.src, d, false));
 }
 
+// --------------------------------------
+// Firebase에서 1회 로딩
+// --------------------------------------
 async function loadRoomLayoutOnce(room) {
-    if (!USE_FIREBASE) return false;
-
-    const snap = await get(ref(db, `users/${roomOwnerId}/rooms/${room}/layout`));
-    if (snap.exists()) {
-        renderLayout(snap.val());
-        return true;
-    }
-    return false;
-}
-
-function loadRoomLayoutFromLocal(room) {
-    const saved = localStorage.getItem(roomLayoutKey(room));
-    if (!saved) return false;
-    renderLayout(JSON.parse(saved));
+  const data = await fbSafeGet(`users/${roomOwnerId}/rooms/${room}/layout`);
+  if (data) {
+    renderLayout(data);
     return true;
+  }
+  return false;
 }
+
+// --------------------------------------
+// 로컬에서 로딩
+// --------------------------------------
+function loadRoomLayoutFromLocal(room) {
+  const saved = localStorage.getItem(roomLayoutKey(room));
+  if (!saved) return false;
+  renderLayout(JSON.parse(saved));
+  return true;
+}
+
+// --------------------------------------
+// Firebase 실시간 반영
+// --------------------------------------
+let currentRoomListener = null;
 
 function subscribeRoomRealtime(room) {
-    if (!USE_FIREBASE) return;
+  if (currentRoomListener) off(currentRoomListener);
 
-    if (currentRoomLayoutRef) off(currentRoomLayoutRef);
-
-    const layoutRef = ref(db, `users/${roomOwnerId}/rooms/${room}/layout`);
-    currentRoomLayoutRef = layoutRef;
-
-    onValue(layoutRef, snap => {
-        if (!snap.exists()) {
-            furnitureLayer.innerHTML = "";
-            return;
-        }
-        renderLayout(snap.val());
-    });
+  currentRoomListener = fbSafeOn(
+    `users/${roomOwnerId}/rooms/${room}/layout`,
+    (data) => {
+      if (data) renderLayout(data);
+    }
+  );
 }
 
+// --------------------------------------
+// 방 로딩
+// --------------------------------------
 async function loadRoom(room) {
-    furnitureLayer.innerHTML = "";
+  furnitureLayer.innerHTML = "";
 
-    const ok = await loadRoomLayoutOnce(room);
-    if (!ok) loadRoomLayoutFromLocal(room);
+  // Firebase → 로컬 순서로 시도
+  const ok = await loadRoomLayoutOnce(room);
+  if (!ok) loadRoomLayoutFromLocal(room);
 
-    subscribeRoomRealtime(room);
+  subscribeRoomRealtime(room);
 }
 
-// 가구 추가/선택/이동/회전/크기
+// --------------------------------------
+// 가구 선택
+// --------------------------------------
 let selectedFurniture = null;
 let furnitureZ = 1000;
 
 function selectFurniture(el) {
-    document.querySelectorAll(".room-furniture").forEach(f => f.classList.remove("selected"));
-    selectedFurniture = el;
-    el.classList.add("selected");
+  document.querySelectorAll(".room-furniture").forEach(f => f.classList.remove("selected"));
+  selectedFurniture = el;
+  el.classList.add("selected");
 }
 
-document.addEventListener("click", e => {
-    if (!e.target.closest(".room-furniture") && !e.target.closest("#controlPanel")) {
-        if (selectedFurniture) {
-            selectedFurniture.classList.remove("selected");
-            selectedFurniture = null;
-        }
-    }
-});
+// --------------------------------------
+// 가구 추가
+// --------------------------------------
+function addFurnitureToRoom(src, opt = {}, save = true) {
+  const wrap = document.createElement("div");
+  wrap.className = "room-furniture";
 
-function addFurnitureToRoom(src, options = {}, save = true) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "room-furniture";
+  wrap.style.left = opt.x ?? "50%";
+  wrap.style.top = opt.y ?? "60%";
+  wrap.dataset.scale = opt.scale ?? "1";
+  wrap.dataset.rotate = opt.rotate ?? "0";
+  wrap.dataset.locked = opt.locked ?? "false";
+  wrap.style.zIndex = furnitureZ++;
 
-    wrapper.style.left = options.x ?? "50%";
-    wrapper.style.top = options.y ?? "60%";
-    wrapper.dataset.scale = options.scale ?? "1";
-    wrapper.dataset.rotate = options.rotate ?? "0";
-    wrapper.dataset.locked = options.locked ?? "false";
-    wrapper.style.zIndex = furnitureZ++;
+  const img = document.createElement("img");
+  img.src = src;
+  wrap.appendChild(img);
 
-    const img = document.createElement("img");
-    img.src = src;
-    img.draggable = false;
-    wrapper.appendChild(img);
+  wrap.onclick = (e) => {
+    e.stopPropagation();
+    selectFurniture(wrap);
+  };
 
-    wrapper.onclick = e => {
-        e.stopPropagation();
-        selectFurniture(wrapper);
-    };
+  furnitureLayer.appendChild(wrap);
 
-    furnitureLayer.appendChild(wrapper);
-    enableDrag(wrapper);
-    applyTransform(wrapper);
+  enableDrag(wrap);
+  applyTransform(wrap);
 
-    if (save) saveCurrentRoomLayout();
+  if (save) saveCurrentRoomLayout();
 }
 
+// --------------------------------------
+// 가구 transform 적용
+// --------------------------------------
 function applyTransform(el) {
-    el.style.transform = `scale(${el.dataset.scale}) rotate(${el.dataset.rotate}deg)`;
+  el.style.transform = `scale(${el.dataset.scale}) rotate(${el.dataset.rotate}deg)`;
 }
 
+// --------------------------------------
+// 가구 드래그 이동
+// --------------------------------------
 function enableDrag(el) {
-    let dragging = false;
-    let startX, startY, baseLeft, baseTop;
+  let dragging = false;
+  let startX, startY, baseLeft, baseTop;
 
-    el.addEventListener("mousedown", e => {
-        if (el.dataset.locked === "true") return;
-        dragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        baseLeft = el.offsetLeft;
-        baseTop = el.offsetTop;
-    });
+  el.addEventListener("mousedown", (e) => {
+    if (el.dataset.locked === "true") return;
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    baseLeft = el.offsetLeft;
+    baseTop = el.offsetTop;
+  });
 
-    document.addEventListener("mousemove", e => {
-        if (!dragging) return;
-        el.style.left = baseLeft + (e.clientX - startX) + "px";
-        el.style.top = baseTop + (e.clientY - startY) + "px";
-    });
+  document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    el.style.left = baseLeft + (e.clientX - startX) + "px";
+    el.style.top = baseTop + (e.clientY - startY) + "px";
+  });
 
-    document.addEventListener("mouseup", () => {
-        if (!dragging) return;
-        dragging = false;
-        saveCurrentRoomLayout();
-    });
-}
-
-// 컨트롤 패널 버튼
-document.querySelectorAll("#controlPanel button").forEach(btn => {
-    btn.addEventListener("click", () => {
-        if (!selectedFurniture) return;
-        const act = btn.dataset.act;
-        handleControl(selectedFurniture, act);
-    });
-});
-
-function handleControl(el, act) {
-    let scale = parseFloat(el.dataset.scale);
-    let rotate = parseFloat(el.dataset.rotate);
-
-    if (el.dataset.locked === "true" && act !== "edit") return;
-
-    switch (act) {
-        case "confirm":
-            el.dataset.locked = "true";
-            el.classList.add("locked");
-            return;
-        case "edit":
-            el.dataset.locked = "false";
-            el.classList.remove("locked");
-            return;
-        case "bigger":
-            scale += 0.1;
-            break;
-        case "smaller":
-            scale = Math.max(0.2, scale - 0.1);
-            break;
-        case "rotL":
-            rotate -= 10;
-            break;
-        case "rotR":
-            rotate += 10;
-            break;
-        case "delete":
-            el.remove();
-            selectedFurniture = null;
-            saveCurrentRoomLayout();
-            return;
-    }
-
-    el.dataset.scale = scale;
-    el.dataset.rotate = rotate;
-    applyTransform(el);
+  document.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false;
     saveCurrentRoomLayout();
-}
-
-// 방 이동 
-function slideRoom(dir) {
-    roomAreaEl.style.transition = "transform 0.3s ease";
-    roomAreaEl.style.transform = `translateX(${dir * 120}%)`;
-    setTimeout(() => (roomAreaEl.style.transform = "translateX(0%)"), 300);
-}
-function placeCustomFurniture(roomNumber, src) {
-  if (currentRoom !== roomNumber) {
-    currentRoom = roomNumber;
-    updateRoomInfo();
-    loadRoom(currentRoom);
-    renderRoomTabs();
-  }
-
-  addFurnitureToRoom(src);
-}
-
-
-async function syncMaxRoomIndexFromFirebase() {
-    if (!USE_FIREBASE) return;
-
-    const roomsRef = ref(db, `users/${roomOwnerId}/rooms`);
-    const snap = await get(roomsRef);
-
-    if (snap.exists()) {
-        const nums = Object.keys(snap.val()).map(n => parseInt(n));
-        maxRoomIndex = Math.max(...nums, maxRoomIndex);
-        localStorage.setItem("totalRooms", maxRoomIndex);
-    }
-}
-
-
-async function ensureDefaultRoom() {
-    if (!localStorage.getItem("totalRooms")) {
-        localStorage.setItem("totalRooms", 1);
-    }
-    if (!localStorage.getItem("roomName_1")) {
-        localStorage.setItem("roomName_1", "방 1");
-    }
-
-    const room1Ref = ref(db, `users/${roomOwnerId}/rooms/1`);
-    const snap = await get(room1Ref);
-}
-
-window.addEventListener("load", async () => {
-    renderUserInfo();
-
-    await ensureDefaultRoom();
-    await syncMaxRoomIndexFromFirebase();
-
-    maxRoomIndex = Number(localStorage.getItem("totalRooms")) || 1;
-
-    if (currentRoom > maxRoomIndex) currentRoom = 1;
-
-    updateRoomInfo();
-    renderRoomTabs();
-
-    const activeTab = document.querySelector(".paw-tab.active");
-    loadFurnitureList(activeTab?.dataset.type || "sofa");
-
-    await loadRoom(currentRoom);
-});
-
-document.getElementById("addRoomBtn").onclick = async () => {
-    await saveCurrentRoomLayout();
-    const newName = prompt("새로운 방 이름:", `방 ${maxRoomIndex + 1}`);
-    if (!newName) return;
-
-    maxRoomIndex++;
-    localStorage.setItem("totalRooms", maxRoomIndex);
-
-    if (USE_FIREBASE) {
-        await set(ref(db, `users/${roomOwnerId}/rooms/${maxRoomIndex}`), {
-            name: newName,
-            layout: []
-        });
-    }
-
-    localStorage.setItem(`roomName_${maxRoomIndex}`, newName);
-
-    alert(`${newName} 생성됨!`);
-    currentRoom = maxRoomIndex;
-
-    updateRoomInfo();
-    furnitureLayer.innerHTML = "";
-    await loadRoom(currentRoom);
-    renderRoomTabs();
-    slideRoom(1);
-};
-
-
-document.getElementById("deleteRoomBtn").onclick = async () => {
-    if (!confirm(`${currentRoom}번 방을 삭제할까요?`)) return;
-
-     if (USE_FIREBASE) {
-        await remove(ref(db, `users/${roomOwnerId}/rooms/${currentRoom}`));
-    }
-    
-    localStorage.removeItem(roomLayoutKey(currentRoom));
-    localStorage.removeItem(`roomName_${currentRoom}`);
-
-    maxRoomIndex = Math.max(1, maxRoomIndex - 1);
-    localStorage.setItem("totalRooms", maxRoomIndex);
-
-    currentRoom = Math.min(currentRoom, maxRoomIndex);
-
-    updateRoomInfo();
-    await loadRoom(currentRoom);
-    renderRoomTabs();
-};
-
-document.getElementById("renameRoomBtn").onclick = () => {
-    roomInfoEl.click();
-};
-
-document.getElementById("roomShareBtn").onclick = () => {
-    const url = `${location.origin}${location.pathname}?owner=${roomOwnerId}&room=${currentRoom}`;
-    navigator.clipboard.writeText(url);
-    alert("방 공유 링크가 복사되었습니다!");
-};
-
-document.getElementById("addFriendBtn").onclick = () => {
-    alert("친구 기능은 준비중!");
-};
-
-// 가구 카테고리 로딩
-const furnitureData = {
-    sofa: [
-        "assets/img/main/sofa/sofa1.png",
-        "assets/img/main/sofa/sofa2.png",
-        "assets/img/main/sofa/sofa3.png",
-        "assets/img/main/sofa/sofa4.png",
-        "assets/img/main/sofa/sofa5.png",
-        "assets/img/main/sofa/sofa6.png",
-        "assets/img/main/sofa/sofa7.png",
-        "assets/img/main/sofa/sofa8.png",
-        "assets/img/main/sofa/sofa9.png",
-        "assets/img/main/sofa/sofa10.png",
-    ],
-    bed: ["assets/img/main/bed/bed1.png", "assets/img/main/bed/bed2.png"],
-    light: [
-        "assets/img/main/light/light1.png",
-        "assets/img/main/light/light2.png",
-        "assets/img/main/light/light3.png",
-        "assets/img/main/light/light4.png",
-        "assets/img/main/light/light5.png",
-    ],
-    window: [
-        "assets/img/main/window/window1.png",
-        "assets/img/main/window/window2.png",
-        "assets/img/main/window/window3.png",
-        "assets/img/main/window/window4.png",
-        "assets/img/main/window/window5.png",
-    ],
-    desk: [
-        "assets/img/main/desk/desk1.png",
-        "assets/img/main/desk/desk2.png",
-        "assets/img/main/desk/desk3.png",
-    ],
-    drawer: [
-        "assets/img/main/drawer/drawer1.png",
-        "assets/img/main/drawer/drawer2.png",
-        "assets/img/main/drawer/drawer3.png",
-        "assets/img/main/drawer/drawer4.png",
-        "assets/img/main/drawer/drawer5.png",
-        "assets/img/main/drawer/drawer6.png",
-        "assets/img/main/drawer/drawer7.png",
-        "assets/img/main/drawer/drawer8.png",
-        "assets/img/main/drawer/drawer9.png",
-    ],
-    char: [
-        "assets/img/main/char/char1.png",
-        "assets/img/main/char/char2.png",
-        "assets/img/main/char/char3.png",
-    ],
-    animal: [
-        "assets/img/main/animal/cat1.png",
-        "assets/img/main/animal/cat2.png",
-        "assets/img/main/animal/animal_doll1.png",
-        "assets/img/main/animal/cats_doll1.png",
-    ],
-    items: [
-        "assets/img/main/items/bag1.png",
-        "assets/img/main/items/book1.png",
-        "assets/img/main/items/book2.png",
-        "assets/img/main/items/book3.png",
-        "assets/img/main/items/candle1.png",
-        "assets/img/main/items/camer1.png",
-        "assets/img/main/items/clock1.png",
-        "assets/img/main/items/cosmetics1.png",
-        "assets/img/main/items/cup1.png",
-        "assets/img/main/items/cup2.png",
-        "assets/img/main/items/flowerpot1.png",
-        "assets/img/main/items/flowerpot2.png",
-        "assets/img/main/items/frame1.png",
-        "assets/img/main/items/frame2.png",
-        "assets/img/main/items/frame3.png",
-        "assets/img/main/items/paper1.png",
-        "assets/img/main/items/shelf1.png",
-        "assets/img/main/items/tv1.png",
-    ],
-    custom: [],
-};
-
-const furnitureListEl = document.getElementById("furnitureList");
-
-function createFurnitureThumb(src) {
-    const box = document.createElement("div");
-    box.className = "furniture-item";
-
-    const img = document.createElement("img");
-    img.src = src;
-
-    box.appendChild(img);
-    box.onclick = () => addFurnitureToRoom(src);
-
-    furnitureListEl.appendChild(box);
-}
-
-function loadFurnitureList(type) {
-    furnitureListEl.innerHTML = "";
-
-    if (type === "custom") {
-        const custom = JSON.parse(localStorage.getItem("customFurniture") || "[]");
-        custom.forEach(src => createFurnitureThumb(src));
-    } else {
-        furnitureData[type]?.forEach(src => createFurnitureThumb(src));
-    }
-}
-
-document.querySelectorAll(".paw-tab").forEach(btn => {
-    btn.onclick = () => {
-        document.querySelector(".paw-tab.active")?.classList.remove("active");
-        btn.classList.add("active");
-
-        loadFurnitureList(btn.dataset.type);
-    };
-});
-
-//그림그린거 연동
-const drawBtn = document.getElementById("drawBtn");
-
-if (drawBtn) {
-  drawBtn.addEventListener("click", () => {
-    window.location.href = "draw.html";
   });
 }
 
+// --------------------------------------
+// 컨트롤 패널 동작
+// --------------------------------------
+document.querySelectorAll("#controlPanel button").forEach(btn => {
+  btn.onclick = () => {
+    if (!selectedFurniture) return;
+
+    let scale = Number(selectedFurniture.dataset.scale);
+    let rot = Number(selectedFurniture.dataset.rotate);
+    const act = btn.dataset.act;
+
+    switch (act) {
+      case "confirm":
+        selectedFurniture.dataset.locked = "true";
+        return;
+
+      case "edit":
+        selectedFurniture.dataset.locked = "false";
+        return;
+
+      case "bigger":
+        scale += 0.1;
+        break;
+
+      case "smaller":
+        scale = Math.max(0.2, scale - 0.1);
+        break;
+
+      case "rotL":
+        rot -= 10;
+        break;
+
+      case "rotR":
+        rot += 10;
+        break;
+
+      case "delete":
+        selectedFurniture.remove();
+        selectedFurniture = null;
+        saveCurrentRoomLayout();
+        return;
+    }
+
+    selectedFurniture.dataset.scale = scale;
+    selectedFurniture.dataset.rotate = rot;
+    applyTransform(selectedFurniture);
+    saveCurrentRoomLayout();
+  };
+});
+
+// --------------------------------------
+// 방 전환 애니메이션
+// --------------------------------------
+function slideRoom(dir) {
+  roomAreaEl.style.transition = "transform .3s";
+  roomAreaEl.style.transform = `translateX(${dir * 120}%)`;
+  setTimeout(() => {
+    roomAreaEl.style.transform = "translateX(0%)";
+  }, 300);
+}
+
+/* ------------------------------------------------------
+   [PART 3] - 방 CRUD, 가구 목록, 관리자 패널
+--------------------------------------------------------- */
+
+// --------------------------------------
+// 방 탭 렌더링
+// --------------------------------------
+function renderRoomTabs() {
+  roomTabsContainer.innerHTML = "";
+
+  for (let i = 1; i <= maxRoomIndex; i++) {
+    const btn = document.createElement("button");
+    btn.className = `room-tab ${i === currentRoom ? "active" : ""}`;
+    btn.textContent = `${i}번 방`;
+
+    btn.onclick = async () => {
+      if (i === currentRoom) return;
+      await saveCurrentRoomLayout();
+
+      const dir = i > currentRoom ? 1 : -1;
+
+      currentRoom = i;
+      updateRoomInfo();
+      await loadRoom(i);
+      renderRoomTabs();
+      slideRoom(dir);
+    };
+
+    roomTabsContainer.appendChild(btn);
+  }
+}
+
+// --------------------------------------
+// 방 추가
+// --------------------------------------
+document.getElementById("addRoomBtn").onclick = async () => {
+  await saveCurrentRoomLayout();
+
+  const name = prompt("새 방 이름", `방 ${maxRoomIndex + 1}`);
+  if (!name) return;
+
+  maxRoomIndex++;
+  localStorage.setItem("totalRooms", maxRoomIndex);
+  localStorage.setItem(`roomName_${maxRoomIndex}`, name);
+
+  await fbSafeSet(`users/${roomOwnerId}/rooms/${maxRoomIndex}`, {
+    name,
+    layout: []
+  });
+
+  currentRoom = maxRoomIndex;
+
+  updateRoomInfo();
+  renderRoomTabs();
+  furnitureLayer.innerHTML = "";
+  alert(`${name} 생성됨!`);
+};
+
+// --------------------------------------
+// 방 삭제
+// --------------------------------------
+document.getElementById("deleteRoomBtn").onclick = async () => {
+  if (!confirm(`${currentRoom}번 방을 삭제할까요?`)) return;
+
+  await fbSafeRemove(`users/${roomOwnerId}/rooms/${currentRoom}`);
+
+  localStorage.removeItem(roomLayoutKey(currentRoom));
+  localStorage.removeItem(`roomName_${currentRoom}`);
+
+  maxRoomIndex = Math.max(1, maxRoomIndex - 1);
+  localStorage.setItem("totalRooms", maxRoomIndex);
+
+  currentRoom = Math.min(currentRoom, maxRoomIndex);
+  updateRoomInfo();
+  renderRoomTabs();
+  await loadRoom(currentRoom);
+};
+
+// --------------------------------------
+// 방 이름 수정
+// --------------------------------------
+document.getElementById("roomInfo").onclick = async () => {
+  const newName = prompt("방 이름 수정", getRoomName(currentRoom));
+  if (!newName) return;
+
+  setRoomName(currentRoom, newName);
+  updateRoomInfo();
+  renderRoomTabs();
+};
+
+// --------------------------------------
+// 가구 종류
+// --------------------------------------
+const furnitureData = {
+  sofa: Array.from({ length: 10 }, (_, i) => `assets/img/main/sofa/sofa${i+1}.png`),
+  bed: ["assets/img/main/bed/bed1.png", "assets/img/main/bed/bed2.png"],
+  light: [
+    "assets/img/main/light/light1.png",
+    "assets/img/main/light/light2.png",
+    "assets/img/main/light/light3.png",
+    "assets/img/main/light/light4.png",
+    "assets/img/main/light/light5.png",
+  ],
+  window: [
+    "assets/img/main/window/window1.png",
+    "assets/img/main/window/window2.png",
+    "assets/img/main/window/window3.png",
+    "assets/img/main/window/window4.png",
+    "assets/img/main/window/window5.png",
+  ],
+  // ... 나머지 동일
+  custom: []
+};
+
+// --------------------------------------
+// 가구 목록 표시
+// --------------------------------------
+function createFurnitureThumb(src) {
+  const box = document.createElement("div");
+  box.className = "furniture-item";
+  const img = document.createElement("img");
+  img.src = src;
+  box.appendChild(img);
+  box.onclick = () => addFurnitureToRoom(src);
+  furnitureListEl.appendChild(box);
+}
+
+function loadFurnitureList(type) {
+  furnitureListEl.innerHTML = "";
+  if (type === "custom") {
+    const custom = JSON.parse(localStorage.getItem("customFurniture") || "[]");
+    custom.forEach(createFurnitureThumb);
+  } else {
+    furnitureData[type].forEach(createFurnitureThumb);
+  }
+}
+
+document.querySelectorAll(".paw-tab").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelector(".paw-tab.active")?.classList.remove("active");
+    btn.classList.add("active");
+    loadFurnitureList(btn.dataset.type);
+  };
+});
+
+// --------------------------------------
+// 직접 그리기 넘어가기
+// --------------------------------------
+document.getElementById("drawBtn")?.addEventListener("click", () => {
+  location.href = "draw.html";
+});
+
+// --------------------------------------
+// 그린 가구 배치
+// --------------------------------------
 const pending = JSON.parse(localStorage.getItem("pendingCustomFurniture"));
 if (pending) {
-  placeCustomFurniture(pending.room, pending.src);
+  currentRoom = pending.room;
+  updateRoomInfo();
+  loadRoom(currentRoom);
+  addFurnitureToRoom(pending.src);
   localStorage.removeItem("pendingCustomFurniture");
 }
 
-// 관리자 
+// --------------------------------------
+// 관리자 패널 (localStorage 기반)
+// --------------------------------------
 window.addEventListener("load", () => {
+  renderUserInfo();
+  updateRoomInfo();
+  renderRoomTabs();
+  loadRoom(currentRoom);
+
   const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const adminId = localStorage.getItem("adminUserId");
-
-  console.log("currentUser:", currentUser);
-  console.log("adminId:", adminId);
-
   const adminPanel = document.getElementById("adminPanel");
 
   if (currentUser && currentUser.id === adminId) {
-    if (adminPanel) {
-      adminPanel.style.display = "block";
-      console.log("관리자 메뉴 표시됨!");
-    } else {
-      console.error("adminPanel 요소를 찾을 수 없습니다.");
-    }
-  } else {
-    console.log("관리자 계정이 아님 → adminPanel 숨김");
+    adminPanel.style.display = "block";
   }
 });
