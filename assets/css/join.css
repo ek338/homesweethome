@@ -1,110 +1,128 @@
-body,.btn , .email , .login_box {
-  font-family: "Jua", sans-serif;
-  font-style: normal;
+/* 기본 폰트 적용 */
+body, .btn, .email, .login_box, .text {
+    font-family: "Jua", sans-serif;
+    font-style: normal;
 }
-h1,h2,h3,h4,h5,h6 {
-  font-family: "Bagel Fat One", system-ui;
-  font-style: normal;
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Bagel Fat One", system-ui;
+    font-style: normal;
 }
+
+
+/* 체크 메시지 */
 .check {
-            color: green;
-            font-size: 14px;
-            display: none;
-        }
+    color: green;
+    font-size: 13px;
+    margin-top: 6px;
+    display: none;
+}
+
+/* 에러 메시지 */
 .error {
-            color: red;
-            font-size: 14px;
-            display: none;
-        }
-
-table {
-    width: 280px;
-    height: 550px;
-    margin: auto;      
+    color: red;
+    font-size: 13px;
+    margin-top: 6px;
+    display: none;
 }
 
-.login_box{
-    width: 320px;
-    margin: 100px auto;
+
+/* 로그인 박스 */
+.login_box {
+    width: 330px;
+    margin: 90px auto;
     padding: 30px 25px;
-    background: white;
+    background: #ffffff;
     border-radius: 20px;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.15);  
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.15);
+    box-sizing: border-box;
 }
 
-.email {
-    width: 127px;
-    height: 32px;
-    font-size: 15px;
-    border: 0;
-    border-color: lightgray;
-    border-radius: 15px;
-    outline: none;
-    padding-left: 10px;
-    background-color: rgb(233,233,233);
+/* 테이블 전체 간격 */
+table {
+    width: 100%;
+    margin: 0 auto;
+    border-spacing: 0 10px; /* 줄 간격 */
 }
 
+
+/* 모든 입력 필드 스타일 */
 .text {
     width: 100%;
-    height: 32px;
+    height: 40px;
     font-size: 15px;
-    border: 0;
+    border: none;
     border-radius: 15px;
     outline: none;
-    padding-left: 10px;
-    background-color: rgb(233,233,233);
-}
-select {
-    width: 100px;
-    height: 32px;
-    font-size: 15px;
-    border: 1;
-    border-color: lightgray;
-    border-radius: 15px;
-    outline: none;
-    padding-left: 10px;
-}
-.btn {
-    width: 100%;
-    height: 32px;
-    font-size: 15px;
-    border: 0;
-    border-radius: 15px;
-    outline: none;
-    padding-left: 10px;
-    background-color: rgb(212, 212, 212);
-}
-.btn:active {
-    width: 262px;
-    height: 32px;
-    font-size: 15px;
-    border: 0;
-    border-radius: 15px;
-    outline: none;
-    padding-left: 10px;
-    background-color: rgb(115, 115, 115);
+    padding-left: 12px;
+    background-color: rgb(233, 233, 233);
+    box-sizing: border-box;
 }
 
+
+/* 이메일 행 디자인 */
 .email-row {
     display: flex;
     align-items: center;
-    gap: 10px;            
     width: 100%;
+    gap: 10px;
 }
 
+/* @ 앞 email input */
 .email-row .email-input {
-    flex: 1; 
-    height: 40px;             
-    border: 0;
-    border-radius: 20px;      
-    padding-left: 15px;
+    flex: 1;
+    height: 40px;
     font-size: 15px;
+    border: none;
+    border-radius: 15px;
+    outline: none;
+    padding-left: 12px;
     background-color: rgb(233,233,233);
+    box-sizing: border-box;
 }
 
+/* @ 표시 */
 .email-row span {
     font-weight: bold;
     font-size: 18px;
 }
+
+/* 자동완성(select + datalist 입력칸) */
+.email-row #emailSelect {
+    width: 120px;
+    height: 40px;
+    font-size: 15px;
+    border: none;
+    border-radius: 15px;
+    padding-left: 12px;
+    background-color: rgb(233,233,233);
+    box-sizing: border-box;
+    outline: none;
+}
+
+
+/* 버튼 */
+.btn {
+    width: 100%;
+    height: 40px;
+    font-size: 16px;
+    border: none;
+    border-radius: 15px;
+    background-color: rgb(212, 212, 212);
+    cursor: pointer;
+}
+
+.btn:active {
+    background-color: rgb(115, 115, 115);
+}
+
+/* 모바일 대응 */
+@media screen and (max-width: 420px) {
+    .login_box {
+        width: 90%;
+        margin-top: 60px;
+    }
+}
+
 
 
