@@ -106,3 +106,15 @@ async function login() {
     alert("로그인 성공!");
 
     // 관리자라면 admin.html 이동
+    if (await isAdmin(user.uid))
+      window.location.href = "admin.html";
+    else
+      window.location.href = "home.html";
+
+  } catch (err) {
+    console.error(err);
+    alert("로그인 실패: " + err.message);
+  }
+}
+
+window.login = login;
