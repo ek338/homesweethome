@@ -33,7 +33,6 @@ const db = getDatabase(app);
 
 // DOM 요소 ------------------------------------
 const inputName = document.getElementById("inputName");
-const inputId = document.getElementById("inputId");
 const inputEmail = document.getElementById("inputEmail");
 const emailSelect = document.getElementById("emailSelect");
 const inputPw = document.getElementById("inputPw");
@@ -242,7 +241,6 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
         await set(ref(db, "users/" + user.uid + "/profile"), {
             id: user.uid,
             name,
-            userId,      // 표시용 아이디
             email,
             birth,
             friends: [],
