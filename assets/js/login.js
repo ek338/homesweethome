@@ -27,63 +27,38 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// 🔥 아이디로 이메일 찾기
-async function getEmailFromUserId(userId) {
-  const usersRef = ref(db, "users");
-  const snap = await get(usersRef);
 
-  if (!snap.exists()) return null;
-
-  const users = snap.val();
-  let email = null;
-
-  Object.values(users).forEach(user => {
-    if (user.profile && user.profile.userId === userId) {
-      email = user.profile.email;
-    }
-  });
-
-  return email;
-}
-
-// 🔥 관리자 확인
+// 🔥 관리자 여부 확인
 async function isAdmin(uid) {
   const adminRef = ref(db, "admin/owner");
   const snap = await get(adminRef);
   return snap.exists() && snap.val() === uid;
 }
 
-// 🔥 로그인
+
+// 🔥 로그인 실행
 async function login() {
-  const userIdInput = document.getElementById("loginId").value.trim();
-  const pw = document.getElementById("loginPw").value;
+  const email = document.getElementById("loginEmail").value.trim();
+  const pw = document.getElementById("loginPw").value.trim();
 
-  if (!userIdInput || !pw) {
-    alert("아이디와 비밀번호를 입력해주세요!");
-    return;
-  }
-
-  // 1️⃣ 아이디를 이메일로 변환
-  const email = await getEmailFromUserId(userIdInput);
-
-  if (!email) {
-    alert("존재하지 않는 아이디입니다!");
+  if (!email || !pw) {
+    alert("이메일과 비밀번호를 입력해주세요!");
     return;
   }
 
   try {
-    // 2️⃣ Firebase Auth로 로그인
+    // 1️⃣ Firebase 이메일 로그인
     const cred = await signInWithEmailAndPassword(auth, email, pw);
     const user = cred.user;
 
-    // 3️⃣ DB에서 프로필 가져오기
+    // 2️⃣ DB의 프로필 가져오기
     const profileRef = ref(db, `users/${user.uid}/profile`);
     const profileSnap = await get(profileRef);
 
     if (profileSnap.exists()) {
       const profile = profileSnap.val();
 
-      // 최근 로그인 업데이트
+      // 최근 로그인 기록 업데이트
       await set(profileRef, {
         ...profile,
         recentLogin: new Date().toISOString(),
@@ -100,12 +75,12 @@ async function login() {
       }));
     }
 
-    // 현재 로그인 사용자 uid 저장
+    // 현재 로그인 사용자 UID 저장
     localStorage.setItem("currentUserUid", user.uid);
 
     alert("로그인 성공!");
 
-    // 관리자라면 admin.html 이동
+    // 3️⃣ 관리자면 admin.html, 아니면 home.html 이동
     if (await isAdmin(user.uid))
       window.location.href = "admin.html";
     else
@@ -117,4 +92,6 @@ async function login() {
   }
 }
 
+// HTML에서 사용 가능하도록
 window.login = login;
+
