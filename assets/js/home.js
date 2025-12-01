@@ -1,11 +1,5 @@
-/* -------------------------------------------------------
-   home.js — LocalStorage + Firebase Hybrid Version
-   GitHub Pages 완전 호환 + Firebase 연결 시 실시간 기능 지원
---------------------------------------------------------- */
 
-// ------------------------
-// 0. Firebase 설정 + 스위치
-// ------------------------
+// Firebase 설정 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getDatabase,
@@ -17,9 +11,8 @@ import {
   off,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// 🔥 여기만 true/false 바꾸면 즉시 모드 변경됨
-const USE_FIREBASE = true; // ← 파이어베이스 활성화
-// const USE_FIREBASE = false; // ← 로컬 모드만 사용
+const USE_FIREBASE = true; 
+// const USE_FIREBASE = false; // ← 로컬 모드만 
 
 const firebaseConfig = {
   apiKey: "AIzaSyCDqh874UuYAT3Mmox1GLvHA4BfakrTfW0",
@@ -34,16 +27,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --------------------------------------------------
-// Firebase 안전 호출용 래퍼 — 실패해도 앱 죽지 않음
-// --------------------------------------------------
+// Firebase 안전 호출용 
 async function fbSafeGet(path) {
   if (!USE_FIREBASE) return null;
   try {
     const snap = await get(ref(db, path));
     return snap.exists() ? snap.val() : null;
   } catch (err) {
-    console.warn("🔥 Firebase GET 실패 → 로컬로 대체:", err);
+    console.warn(" Firebase GET 실패 → 로컬로 대체:", err);
     return null;
   }
 }
@@ -53,7 +44,7 @@ async function fbSafeSet(path, value) {
   try {
     return await set(ref(db, path), value);
   } catch (err) {
-    console.warn("🔥 Firebase SET 실패 → 로컬만 저장:", err);
+    console.warn(" Firebase SET 실패 → 로컬만 저장:", err);
   }
 }
 
@@ -62,7 +53,7 @@ async function fbSafeRemove(path) {
   try {
     return await remove(ref(db, path));
   } catch (err) {
-    console.warn("🔥 Firebase REMOVE 실패:", err);
+    console.warn(" Firebase REMOVE 실패:", err);
   }
 }
 
@@ -75,14 +66,12 @@ function fbSafeOn(path, callback) {
     });
     return r;
   } catch (err) {
-    console.warn("🔥 Firebase ON 실패:", err);
+    console.warn(" Firebase ON 실패:", err);
     return null;
   }
 }
 
-// --------------------------------------------------
-// 1. DOM 요소
-// --------------------------------------------------
+// DOM 요소
 const furniturePanel = document.getElementById("furniturePanel");
 const toggleFurnitureBtn = document.getElementById("toggleFurnitureBtn");
 const furnitureLayer = document.getElementById("furnitureLayer");
@@ -96,9 +85,7 @@ toggleFurnitureBtn?.addEventListener("click", () => {
   furniturePanel.classList.toggle("open");
 });
 
-// --------------------------------------------------
-// 2. 사용자 정보 로드
-// --------------------------------------------------
+// 사용자 정보 로드
 function getPlayerData() {
   return (
     JSON.parse(localStorage.getItem("playerData")) || {
@@ -133,9 +120,7 @@ function renderUserInfo() {
   }
 }
 
-// --------------------------------------------------
-// 3. 방 관련 기초 설정
-// --------------------------------------------------
+// 방 기초 설정
 let currentRoom = 1;
 let roomOwnerId = localStorage.getItem("userId") || "user_" + Date.now();
 
@@ -158,20 +143,12 @@ function updateRoomInfo() {
   }
 }
 
-/* ------------------------------------------------------
-   [PART 2] - 방 저장, 로딩, 가구 배치/조작
---------------------------------------------------------- */
-
-// --------------------------------------
 // 방 레이아웃 키
-// --------------------------------------
 function roomLayoutKey(n) {
   return `roomLayout_${roomOwnerId}_${n}`;
 }
 
-// --------------------------------------
 // 현재 화면 DOM에서 레이아웃 수집
-// --------------------------------------
 function collectLayoutFromDOM() {
   const layout = [];
   document.querySelectorAll(".room-furniture").forEach(el => {
@@ -188,26 +165,20 @@ function collectLayoutFromDOM() {
   return layout;
 }
 
-// --------------------------------------
-// 방 레이아웃 저장 (로컬 + Firebase 안전 저장)
-// --------------------------------------
+// 방 레이아웃 저장 
 async function saveCurrentRoomLayout() {
   const layout = collectLayoutFromDOM();
   localStorage.setItem(roomLayoutKey(currentRoom), JSON.stringify(layout));
   await fbSafeSet(`users/${roomOwnerId}/rooms/${currentRoom}/layout`, layout);
 }
 
-// --------------------------------------
 // 방 레이아웃 적용
-// --------------------------------------
 function renderLayout(layout) {
   furnitureLayer.innerHTML = "";
   layout.forEach(d => addFurnitureToRoom(d.src, d, false));
 }
 
-// --------------------------------------
-// Firebase에서 1회 로딩
-// --------------------------------------
+// Firebase 1회 로딩
 async function loadRoomLayoutOnce(room) {
   const data = await fbSafeGet(`users/${roomOwnerId}/rooms/${room}/layout`);
   if (data) {
@@ -217,9 +188,7 @@ async function loadRoomLayoutOnce(room) {
   return false;
 }
 
-// --------------------------------------
 // 로컬에서 로딩
-// --------------------------------------
 function loadRoomLayoutFromLocal(room) {
   const saved = localStorage.getItem(roomLayoutKey(room));
   if (!saved) return false;
@@ -227,9 +196,7 @@ function loadRoomLayoutFromLocal(room) {
   return true;
 }
 
-// --------------------------------------
 // Firebase 실시간 반영
-// --------------------------------------
 let currentRoomListener = null;
 
 function subscribeRoomRealtime(room) {
@@ -243,22 +210,18 @@ function subscribeRoomRealtime(room) {
   );
 }
 
-// --------------------------------------
 // 방 로딩
-// --------------------------------------
 async function loadRoom(room) {
   furnitureLayer.innerHTML = "";
 
-  // Firebase → 로컬 순서로 시도
+  // Firebase → 로컬 순서
   const ok = await loadRoomLayoutOnce(room);
   if (!ok) loadRoomLayoutFromLocal(room);
 
   subscribeRoomRealtime(room);
 }
 
-// --------------------------------------
 // 가구 선택
-// --------------------------------------
 let selectedFurniture = null;
 let furnitureZ = 1000;
 
@@ -268,9 +231,7 @@ function selectFurniture(el) {
   el.classList.add("selected");
 }
 
-// --------------------------------------
 // 가구 추가
-// --------------------------------------
 function addFurnitureToRoom(src, opt = {}, save = true) {
   const wrap = document.createElement("div");
   wrap.className = "room-furniture";
@@ -299,16 +260,12 @@ function addFurnitureToRoom(src, opt = {}, save = true) {
   if (save) saveCurrentRoomLayout();
 }
 
-// --------------------------------------
 // 가구 transform 적용
-// --------------------------------------
 function applyTransform(el) {
   el.style.transform = `scale(${el.dataset.scale}) rotate(${el.dataset.rotate}deg)`;
 }
 
-// --------------------------------------
 // 가구 드래그 이동
-// --------------------------------------
 function enableDrag(el) {
   let dragging = false;
   let startX, startY, baseLeft, baseTop;
@@ -335,9 +292,7 @@ function enableDrag(el) {
   });
 }
 
-// --------------------------------------
-// 컨트롤 패널 동작
-// --------------------------------------
+// 컨트롤 
 document.querySelectorAll("#controlPanel button").forEach(btn => {
   btn.onclick = () => {
     if (!selectedFurniture) return;
@@ -385,9 +340,7 @@ document.querySelectorAll("#controlPanel button").forEach(btn => {
   };
 });
 
-// --------------------------------------
 // 방 전환 애니메이션
-// --------------------------------------
 function slideRoom(dir) {
   roomAreaEl.style.transition = "transform .3s";
   roomAreaEl.style.transform = `translateX(${dir * 120}%)`;
@@ -396,13 +349,7 @@ function slideRoom(dir) {
   }, 300);
 }
 
-/* ------------------------------------------------------
-   [PART 3] - 방 CRUD, 가구 목록, 관리자 패널
---------------------------------------------------------- */
-
-// --------------------------------------
-// 방 탭 렌더링
-// --------------------------------------
+// 방 탭
 function renderRoomTabs() {
   roomTabsContainer.innerHTML = "";
 
@@ -428,9 +375,7 @@ function renderRoomTabs() {
   }
 }
 
-// --------------------------------------
 // 방 추가
-// --------------------------------------
 document.getElementById("addRoomBtn").onclick = async () => {
   await saveCurrentRoomLayout();
 
@@ -454,9 +399,7 @@ document.getElementById("addRoomBtn").onclick = async () => {
   alert(`${name} 생성됨!`);
 };
 
-// --------------------------------------
 // 방 삭제
-// --------------------------------------
 document.getElementById("deleteRoomBtn").onclick = async () => {
   if (!confirm(`${currentRoom}번 방을 삭제할까요?`)) return;
 
@@ -474,9 +417,7 @@ document.getElementById("deleteRoomBtn").onclick = async () => {
   await loadRoom(currentRoom);
 };
 
-// --------------------------------------
 // 방 이름 수정
-// --------------------------------------
 document.getElementById("roomInfo").onclick = async () => {
   const newName = prompt("방 이름 수정", getRoomName(currentRoom));
   if (!newName) return;
@@ -486,9 +427,7 @@ document.getElementById("roomInfo").onclick = async () => {
   renderRoomTabs();
 };
 
-// --------------------------------------
 // 가구 종류
-// --------------------------------------
 const furnitureData = {
   sofa: Array.from({ length: 10 }, (_, i) => `assets/img/main/sofa/sofa${i+1}.png`),
   bed: ["assets/img/main/bed/bed1.png", "assets/img/main/bed/bed2.png"],
@@ -506,11 +445,56 @@ const furnitureData = {
     "assets/img/main/window/window4.png",
     "assets/img/main/window/window5.png",
   ],
-  // ... 나머지 동일
-  custom: []
+  desk: [
+        "assets/img/main/desk/desk1.png",
+        "assets/img/main/desk/desk2.png",
+        "assets/img/main/desk/desk3.png",
+    ],
+    drawer: [
+        "assets/img/main/drawer/drawer1.png",
+        "assets/img/main/drawer/drawer2.png",
+        "assets/img/main/drawer/drawer3.png",
+        "assets/img/main/drawer/drawer4.png",
+        "assets/img/main/drawer/drawer5.png",
+        "assets/img/main/drawer/drawer6.png",
+        "assets/img/main/drawer/drawer7.png",
+        "assets/img/main/drawer/drawer8.png",
+        "assets/img/main/drawer/drawer9.png",
+    ],
+    char: [
+        "assets/img/main/char/char1.png",
+        "assets/img/main/char/char2.png",
+        "assets/img/main/char/char3.png",
+    ],
+    animal: [
+        "assets/img/main/animal/cat1.png",
+        "assets/img/main/animal/cat2.png",
+        "assets/img/main/animal/animal_doll1.png",
+        "assets/img/main/animal/cats_doll1.png",
+    ],
+    items: [
+        "assets/img/main/items/bag1.png",
+        "assets/img/main/items/book1.png",
+        "assets/img/main/items/book2.png",
+        "assets/img/main/items/book3.png",
+        "assets/img/main/items/candle1.png",
+        "assets/img/main/items/camer1.png",
+        "assets/img/main/items/clock1.png",
+        "assets/img/main/items/cosmetics1.png",
+        "assets/img/main/items/cup1.png",
+        "assets/img/main/items/cup2.png",
+        "assets/img/main/items/flowerpot1.png",
+        "assets/img/main/items/flowerpot2.png",
+        "assets/img/main/items/frame1.png",
+        "assets/img/main/items/frame2.png",
+        "assets/img/main/items/frame3.png",
+        "assets/img/main/items/paper1.png",
+        "assets/img/main/items/shelf1.png",
+        "assets/img/main/items/tv1.png",
+    ],
+    custom: []
 };
 
-// --------------------------------------
 // 가구 목록 표시
 // --------------------------------------
 function createFurnitureThumb(src) {
@@ -541,16 +525,12 @@ document.querySelectorAll(".paw-tab").forEach(btn => {
   };
 });
 
-// --------------------------------------
-// 직접 그리기 넘어가기
-// --------------------------------------
+// 직접 그리기 페이지로 이동
 document.getElementById("drawBtn")?.addEventListener("click", () => {
   location.href = "draw.html";
 });
 
-// --------------------------------------
 // 그린 가구 배치
-// --------------------------------------
 const pending = JSON.parse(localStorage.getItem("pendingCustomFurniture"));
 if (pending) {
   currentRoom = pending.room;
@@ -559,10 +539,7 @@ if (pending) {
   addFurnitureToRoom(pending.src);
   localStorage.removeItem("pendingCustomFurniture");
 }
-
-// --------------------------------------
-// 관리자 패널 (localStorage 기반)
-// --------------------------------------
+//관리자
 window.addEventListener("load", () => {
   renderUserInfo();
   updateRoomInfo();

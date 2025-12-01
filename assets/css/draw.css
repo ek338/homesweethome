@@ -13,13 +13,13 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0.20px;
+  font-family: "Jua", sans-serif !important;
 }
 
 .draw-header h1 {
   font-size: 22px;
   margin: 0;
-  font-family: "Jua", sans-serif !important;
 }
 
 .back-btn,
@@ -29,7 +29,6 @@ body, html {
   background: #fff;
   border-radius: 10px;
   cursor: pointer;
-  font-family: "Jua", sans-serif !important;
 }
 
 .draw-main {
