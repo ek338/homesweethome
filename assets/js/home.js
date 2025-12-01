@@ -26,7 +26,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// 🔹 안전 Firebase 래퍼
 async function fbSafeGet(path) {
   if (!USE_FIREBASE) return null;
   try {
@@ -70,7 +69,6 @@ function fbSafeOn(path, callback) {
   }
 }
 
-// ===================== DOM 요소 ======================
 const furniturePanel   = document.getElementById("furniturePanel");
 const toggleFurnitureBtn = document.getElementById("toggleFurnitureBtn");
 const furnitureLayer   = document.getElementById("furnitureLayer");
@@ -79,12 +77,10 @@ const roomTabsContainer= document.getElementById("roomTabs");
 const roomInfoEl       = document.getElementById("roomInfo");
 const furnitureListEl  = document.getElementById("furnitureList");
 
-// 패널 열기
 toggleFurnitureBtn?.addEventListener("click", () => {
   furniturePanel.classList.toggle("open");
 });
 
-// ===================== 유저 정보 ======================
 function getPlayerData() {
   return (
     JSON.parse(localStorage.getItem("playerData")) || {
@@ -123,7 +119,6 @@ function renderUserInfo() {
   if (c)  c.innerText = data.coins ?? 0;
 }
 
-// ===================== 방 기본 설정 ======================
 let currentRoom = 1;
 
 // 방 주인 ID (로컬 기준, Auth랑은 별개)
@@ -151,7 +146,6 @@ function updateRoomInfo() {
   }
 }
 
-// ===================== 방 레이아웃 로컬 키 ======================
 function roomLayoutKey(n) {
   return `roomLayout_${roomOwnerId}_${n}`;
 }
@@ -225,7 +219,6 @@ async function loadRoom(room) {
   subscribeRoomRealtime(room);
 }
 
-// ===================== 가구 추가 / 선택 / 이동 ======================
 let selectedFurniture = null;
 let furnitureZ = 1000;
 
@@ -295,7 +288,6 @@ function enableDrag(el) {
   });
 }
 
-// 캔버스 밖 클릭 → 선택 해제
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".room-furniture") && !e.target.closest("#controlPanel")) {
     if (selectedFurniture) {
@@ -349,7 +341,6 @@ document.querySelectorAll("#controlPanel button").forEach((btn) => {
   };
 });
 
-// ===================== 방 전환 / 탭 ======================
 function slideRoom(dir) {
   roomAreaEl.style.transition = "transform .3s";
   roomAreaEl.style.transform = `translateX(${dir * 120}%)`;
@@ -424,7 +415,6 @@ document.getElementById("deleteRoomBtn").onclick = async () => {
   await loadRoom(currentRoom);
 };
 
-// 방 이름 수정
 roomInfoEl.onclick = async () => {
   const newName = prompt("방 이름 수정", getRoomName(currentRoom));
   if (!newName) return;
@@ -434,7 +424,6 @@ roomInfoEl.onclick = async () => {
   renderRoomTabs();
 };
 
-// ===================== 가구 목록 ======================
 const furnitureData = {
   sofa: Array.from({ length: 10 }, (_, i) => `assets/img/main/sofa/sofa${i + 1}.png`),
   bed: ["assets/img/main/bed/bed1.png", "assets/img/main/bed/bed2.png"],
@@ -540,12 +529,11 @@ const pending = JSON.parse(localStorage.getItem("pendingCustomFurniture"));
 if (pending) {
   currentRoom = pending.room;
   updateRoomInfo();
-  loadRoom(currentRoom);
+  await loadRoom(currentRoom);
   addFurnitureToRoom(pending.src);
   localStorage.removeItem("pendingCustomFurniture");
 }
 
-// ===================== 관리자 버튼 & 초기 실행 ======================
 window.addEventListener("load", () => {
   renderUserInfo();
 

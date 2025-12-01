@@ -39,8 +39,6 @@ const inputPw = document.getElementById("inputPw");
 const inputPwCheck = document.getElementById("inputPwCheck");
 const inputBirth = document.getElementById("inputBirth");
 
-
-// ----- 에러/체크 메시지 자동 생성 -----
 function createIndicator(id) {
     let el = document.getElementById(id);
     if (!el) {
@@ -51,7 +49,6 @@ function createIndicator(id) {
         el.style.fontSize = "13px";
         el.style.marginTop = "4px";
 
-        // 해당 인풋 아래에 자동 추가
         if (id.startsWith("name")) inputName.parentNode.appendChild(el);
         else if (id.startsWith("email")) inputEmail.parentNode.parentNode.appendChild(el);
         else if (id.startsWith("pwSame")) inputPwCheck.parentNode.appendChild(el);
@@ -81,11 +78,6 @@ pwSameCheck.innerText = "비밀번호가 일치합니다!";
 const pwSameError = createIndicator("pwSameError");
 pwSameError.innerText = "비밀번호가 일치하지 않습니다.";
 
-
-
-// ------------------------------------------------------
-// 🔥 1) 이메일 CSS 숨기기 초기화
-// ------------------------------------------------------
 function hideAll() {
     [
         nameCheck, nameError,
@@ -95,10 +87,6 @@ function hideAll() {
 }
 hideAll();
 
-
-// ------------------------------------------------------
-// 🔥 2) 이름 중복 체크
-// ------------------------------------------------------
 inputName.addEventListener("keyup", async () => {
     const name = inputName.value.trim();
     if (!name) return;
@@ -118,10 +106,6 @@ inputName.addEventListener("keyup", async () => {
     }
 });
 
-
-// ------------------------------------------------------
-// 🔥 3) 이메일 중복 체크 (Auth)
-// ------------------------------------------------------
 async function checkEmail() {
     const emailId = inputEmail.value.trim();
     const domain = emailSelect.value.trim();
@@ -153,10 +137,6 @@ async function checkEmail() {
 inputEmail.addEventListener("keyup", checkEmail);
 emailSelect.addEventListener("change", checkEmail);
 
-
-// ------------------------------------------------------
-// 🔥 4) 비밀번호 규칙 검사
-// ------------------------------------------------------
 inputPw.addEventListener("keyup", () => {
     const pw = inputPw.value;
 
@@ -176,10 +156,6 @@ inputPw.addEventListener("keyup", () => {
     }
 });
 
-
-// ------------------------------------------------------
-// 🔥 5) 비밀번호 확인 검사
-// ------------------------------------------------------
 inputPwCheck.addEventListener("keyup", () => {
     if (inputPw.value === inputPwCheck.value) {
         pwSameCheck.style.display = "block";
@@ -190,10 +166,6 @@ inputPwCheck.addEventListener("keyup", () => {
     }
 });
 
-
-// ------------------------------------------------------
-// 🔥 6) 첫 가입자는 관리자 설정
-// ------------------------------------------------------
 async function setAdminIfFirstUser(uid) {
     const adminRef = ref(db, "admin/owner");
     const snap = await get(adminRef);
@@ -204,14 +176,9 @@ async function setAdminIfFirstUser(uid) {
     }
 }
 
-
-// ------------------------------------------------------
-// 🔥 7) 회원가입 실행
-// ------------------------------------------------------
 document.getElementById("signupForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    // 에러가 하나라도 있으면 중단
     if (
         nameError.style.display === "block" ||
         emailError.style.display === "block" ||
@@ -229,14 +196,11 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     const birth = inputBirth.value.trim();
 
     try {
-        // 1) Auth 계정 생성
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         const user = cred.user;
 
-        // 2) displayName 설정
         await updateProfile(user, { displayName: name });
 
-        // 3) DB 저장
         await set(ref(db, "users/" + user.uid + "/profile"), {
             id: user.uid,
             name,
@@ -248,7 +212,6 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
             role: "user"
         });
 
-        // 4) 첫 사용자 관리자 지정
         await setAdminIfFirstUser(user.uid);
 
         alert("회원가입 성공!");

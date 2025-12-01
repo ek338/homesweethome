@@ -27,16 +27,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-
-// 🔥 관리자 여부 확인
 async function isAdmin(uid) {
   const adminRef = ref(db, "admin/owner");
   const snap = await get(adminRef);
   return snap.exists() && snap.val() === uid;
 }
 
-
-// 🔥 로그인 실행
 async function login() {
   const email = document.getElementById("loginEmail").value.trim();
   const pw = document.getElementById("loginPw").value.trim();
@@ -47,11 +43,9 @@ async function login() {
   }
 
   try {
-    // 1️⃣ Firebase 이메일 로그인
     const cred = await signInWithEmailAndPassword(auth, email, pw);
     const user = cred.user;
 
-    // 2️⃣ DB의 프로필 가져오기
     const profileRef = ref(db, `users/${user.uid}/profile`);
     const profileSnap = await get(profileRef);
 
@@ -64,7 +58,6 @@ async function login() {
         recentLogin: new Date().toISOString(),
       });
 
-      // 홈 화면에서 쓸 캐시 데이터 저장
       localStorage.setItem("playerData", JSON.stringify({
         name: profile.name,
         emoji: "🐱",
@@ -80,7 +73,6 @@ async function login() {
 
     alert("로그인 성공!");
 
-    // 3️⃣ 관리자면 admin.html, 아니면 home.html 이동
     if (await isAdmin(user.uid))
       window.location.href = "admin.html";
     else
@@ -92,6 +84,5 @@ async function login() {
   }
 }
 
-// HTML에서 사용 가능하도록
 window.login = login;
 
