@@ -14,11 +14,11 @@ body {
 
 
 .room-body {
-  margin: 0;
+  width: 100%;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   background: #f2f2f2;
+  display: block;
+  overflow-x: hidden;
 }
 
 .user-basic {
@@ -92,22 +92,25 @@ body {
 }
 
 .room-wrapper {
-   position: relative;
+  width: 100%;
   display: flex;
   justify-content: center;
-  margin-top: 0px;
+  position: relative;
+  padding-top: 20px;
 }
+
 
 #roomArea {
   position: relative;
-  margin-top: 10px;
   width: min(900px, 90vw);
+  height: auto;
   aspect-ratio: 4 / 3;
-  border-radius: 20px;
+  margin: auto;
   overflow: hidden;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
   background: white;
 }
+
 
 .room-bg {
   position: absolute;
