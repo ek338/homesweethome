@@ -1,170 +1,61 @@
 <!DOCTYPE html>
 <html lang="ko">
-    <head>
-        <meta charset="UTF-8"> 
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-        <title>Sign up</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign up</title>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Jua&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="assets/css/join.css">
-    </head>
-    <body>
-        <div class="login_box">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Jua&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/join.css">
+</head>
+
+<body>
+    <div class="login_box">
         <h2>회원가입</h2>
-        <form id="signupForm" action="login.html">
+
+        <form id="signupForm">
             <table>
-                <tr><td>이름</td></tr> 
-                <tr><td> <input id="inputName" type="text" class="text"> 
-                    <div id="nameCheck" class="check">✓</div> 
-                    <div id="nameError" class="error">이미 존재하는 이름입니다!</div> 
-                </td></tr>
-                <tr><td>아이디</td></tr> 
-                <tr><td> <input id="inputId" type="text" class="text"> <div id="idCheck" class="check">✓</div> 
-                <div id="idError" class="error">이미 존재하는 아이디 입니다!</div> 
-                </td></tr> 
-                <tr><td>비밀번호</td></tr> 
-                <tr><td> <input id="inputPw" type="password" class="text"> 
-                <div id="pwCheck" class="check">✓</div> 
-                <div id="pwError" class="error"> 대소문자, 숫자, 특수 문자를 포함하여 최소 8자를 입력해 주세요! </div> 
-                </td></tr> 
-                <tr><td>비밀번호 확인</td></tr> 
-                <tr><td> <input id="inputPwCheck" type="password" class="text"> 
-                <div id="pwSameCheck" class="check">✓ </div> 
-                <div id="pwSameError" class="error">비밀번호가 틀렸습니다. 다시 시도해주세요!</div> 
-                </td></tr> 
-                <tr><td>생년월일</td></tr> 
-                <tr><td><input id="inputBirth" type="date" class="text"></td></tr> 
-                <tr><td>이메일</td></tr> 
+
+                <tr><td>이름</td></tr>
+                <tr><td><input id="inputName" type="text" class="text"></td></tr>
+
+                <tr><td>아이디(표시용)</td></tr>
+                <tr><td><input id="inputId" type="text" class="text"></td></tr>
+
+                <tr><td>비밀번호</td></tr>
+                <tr><td><input id="inputPw" type="password" class="text"></td></tr>
+
+                <tr><td>비밀번호 확인</td></tr>
+                <tr><td><input id="inputPwCheck" type="password" class="text"></td></tr>
+
+                <tr><td>생년월일</td></tr>
+                <tr><td><input id="inputBirth" type="date" class="text"></td></tr>
+
+                <tr><td>이메일</td></tr>
                 <tr><td>
-                    <div class="email-row"> 
-                        <input id="inputEmail" type="text" class="text email-input" placeholder="example"> 
-                        <span>@</span> 
-                        <input id="emailSelect" list="emailList" type="text" class="text email-input" placeholder="example.com"> 
-                        <datalist id="emailList"> 
-                            <option value="naver.com"> 
-                            <option value="gmail.com"> 
-                            <option value="daum.net"> 
-                            <option value="outlook.com"> 
-                        </datalist> 
-                    </div> 
-                </td> </tr> 
-            <tr> <td><input type="submit" value="회원가입 하기!" class="btn"></td></tr>
+                    <div class="email-row">
+                        <input id="inputEmail" type="text" class="text email-input">
+                        <span>@</span>
+                        <input id="emailSelect" list="emailList" type="text" class="text email-input">
+                        <datalist id="emailList">
+                            <option value="naver.com">
+                            <option value="gmail.com">
+                            <option value="daum.net">
+                            <option value="outlook.com">
+                        </datalist>
+                    </div>
+                </td></tr>
+
+                <tr><td><input type="submit" value="회원가입 하기!" class="btn"></td></tr>
             </table>
-    
-
-            <script>
-                const inputId = document.getElementById("inputId");
-                const inputName = document.getElementById("inputName");
-                const inputPw = document.getElementById("inputPw");
-                const inputPwCheck = document.getElementById("inputPwCheck");
-                const inputBirth = document.getElementById("inputBirth");
-                const inputEmail = document.getElementById("inputEmail");
-                const emailSelect = document.getElementById("emailSelect");
-
-                const idCheck = document.getElementById("idCheck");
-                const idError = document.getElementById("idError");
-                const nameCheck = document.getElementById("nameCheck");
-                const nameError = document.getElementById("nameError");
-                const pwCheck = document.getElementById("pwCheck");
-                const pwError = document.getElementById("pwError");
-                const pwSameCheck = document.getElementById("pwSameCheck");
-                const pwSameError = document.getElementById("pwSameError");
-
-   
-                function getUserList() { return JSON.parse(localStorage.getItem("userList") || "[]");}
-
-                inputId.addEventListener("keyup", () => {
-                    const users = getUserList();
-                    const exist = users.some(u => u.id === inputId.value);
-
-                    if (exist) {
-                        idCheck.style.display = "none";
-                        idError.style.display = "block";
-                    } else {
-                        idCheck.style.display = "block";
-                        idError.style.display = "none";
-                    }
-                });
-
-                inputName.addEventListener("keyup", () => {
-                    const users = getUserList();
-                    const exist = users.some(u => u.name === inputName.value);
-
-                    if (exist) {
-                        nameCheck.style.display = "none";
-                        nameError.style.display = "block";
-                    } else {
-                        nameCheck.style.display = "block";
-                        nameError.style.display = "none";
-                    }
-                });
-
-
-                inputPw.addEventListener("keyup", () => {
-                    const pw = inputPw.value;
-                    const regex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
-
-                    if (regex.test(pw)) {
-                        pwCheck.style.display = "block";
-                        pwError.style.display = "none";
-                    } else {
-                        pwCheck.style.display = "none";
-                        pwError.style.display = "block";
-                    }
-                });
-
-                inputPwCheck.addEventListener("keyup", () => {
-                    if (inputPw.value === inputPwCheck.value) {
-                        pwSameCheck.style.display = "block";
-                        pwSameError.style.display = "none";
-                    } else {
-                        pwSameCheck.style.display = "none";
-                        pwSameError.style.display = "block";
-                    }
-                });
-
-
-                document.getElementById("signupForm").addEventListener("submit", (e) => {
-                    e.preventDefault();
-
-                    if (idError.style.display === "block" ||
-                        nameError.style.display === "block" ||
-                        pwError.style.display === "block" ||
-                        pwSameError.style.display === "block") {
-
-                        alert("입력하신 정보를 다시 확인해 주세요!");
-                        return;
-                    }
-
-                    const fullEmail = inputEmail.value + "@" + emailSelect.value;
-
-                    const newUser = {
-                        id: inputId.value, name: inputName.value,
-                        password: inputPw.value, birth: inputBirth.value,
-                        email: fullEmail
-                        };
-                        
-                     setAdminIfFirstUser(newUser);
-
-                    function setAdminIfFirstUser(newUser) {
-                    const adminId = localStorage.getItem("adminUserId");
-                     if (!adminId) {
-                        localStorage.setItem("adminUserId", newUser.id);
-                        console.log("첫 가입자 관리자 등록:", newUser.id);
-                     }
-                        }
-                    const users = getUserList();
-                    users.push(newUser);
-
-                    localStorage.setItem("userList", JSON.stringify(users));
-
-                    alert("회원가입에 성공하였습니다!");
-                    window.location.href = "login.html";
-                });
-            </script>
         </form>
-        </div>
-    </body>
+
+    </div>
+
+    <!-- Firebase Auth 기반 회원가입 코드 -->
+    <script type="module" src="assets/js/join.js"></script>
+
+</body>
 </html>
