@@ -1,155 +1,209 @@
-// assets/js/join.js
-
+// Firebase 설정 ---------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  updateProfile,
+    getAuth,
+    createUserWithEmailAndPassword,
+    updateProfile,
+    fetchSignInMethodsForEmail,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
 import {
-  getDatabase,
-  ref,
-  set,
-  get,
+    getDatabase,
+    ref,
+    set,
+    get
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// 🔧 네 Firebase 설정
+// Firebase 초기화
 const firebaseConfig = {
-  apiKey: "AIzaSyCDqh874UuYAT3Mmox1GLvHA4BfakrTfW0",
-  authDomain: "homesweethome-21569.firebaseapp.com",
-  projectId: "homesweethome-21569",
-  storageBucket: "homesweethome-21569.appspot.com",
-  messagingSenderId: "404205971778",
-  appId: "1:404205971778:web:7af3eab2d87eaca53640db",
-  databaseURL: "https://homesweethome-21569-default-rtdb.firebaseio.com/",
+    apiKey: "AIzaSyCDqh874UuYAT3Mmox1GLvHA4BfakrTfW0",
+    authDomain: "homesweethome-21569.firebaseapp.com",
+    databaseURL: "https://homesweethome-21569-default-rtdb.firebaseio.com/",
+    projectId: "homesweethome-21569",
+    storageBucket: "homesweethome-21569.appspot.com",
+    messagingSenderId: "404205971778",
+    appId: "1:404205971778:web:7af3eab2d87eaca53640db",
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// 🔹 DOM 요소
-const signupForm = document.getElementById("signupForm");
-const inputId = document.getElementById("inputId");       // 닉네임 같은 '아이디'
-const inputName = document.getElementById("inputName");   // 이름
+// DOM 요소 ------------------------------------
+const inputName = document.getElementById("inputName");
+const inputEmail = document.getElementById("inputEmail");
 const inputPw = document.getElementById("inputPw");
 const inputPwCheck = document.getElementById("inputPwCheck");
 const inputBirth = document.getElementById("inputBirth");
-const inputEmail = document.getElementById("inputEmail");
-const emailSelect = document.getElementById("emailSelect");
 
-// (선택) 기존 체크/에러 요소 쓰고 싶으면 가져오기
-const idCheck = document.getElementById("idCheck");
-const idError = document.getElementById("idError");
 const nameCheck = document.getElementById("nameCheck");
 const nameError = document.getElementById("nameError");
+const emailCheck = document.getElementById("emailCheck");
+const emailError = document.getElementById("emailError");
+const emailFormatError = document.getElementById("emailFormatError");
 const pwCheck = document.getElementById("pwCheck");
 const pwError = document.getElementById("pwError");
 const pwSameCheck = document.getElementById("pwSameCheck");
 const pwSameError = document.getElementById("pwSameError");
 
-// 📌 Firebase DB에서 "이미 사용 중인 아이디/이름인지" 간단 검사
-async function isFieldDuplicate(field, value) {
-  // users 밑에 전부 뒤져서 같은 value 있나 검사
-  const usersRef = ref(db, "users");
-  const snap = await get(usersRef);
-  if (!snap.exists()) return false;
+// 숨기기 초기화
+[nameCheck, nameError,
+ emailCheck, emailError, emailFormatError,
+ pwCheck, pwError, pwSameCheck, pwSameError].forEach(el => el.style.display = "none");
 
-  const users = snap.val();
-  return Object.values(users).some(
-    (u) => u.profile && u.profile[field] === value
-  );
-}
 
-// 📌 첫 가입자면 관리자로 등록
-async function setAdminIfFirstUser(uid) {
-  const adminRef = ref(db, "admin/owner");
-  const snap = await get(adminRef);
-  if (!snap.exists()) {
-    await set(adminRef, uid);
-    console.log("첫 가입자 → 관리자 등록:", uid);
-  }
-}
+// ------------------------------------------------------
+// 🔥 1) 이름 중복 체크 (Realtime DB)
+// ------------------------------------------------------
+inputName.addEventListener("keyup", async () => {
+    const name = inputName.value.trim();
+    if (!name) return;
 
-// 🔹 폼 제출 처리
-signupForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
+    const usersRef = ref(db, "users");
+    const snap = await get(usersRef);
 
-  const fullEmail = inputEmail.value.trim() + "@" + emailSelect.value.trim();
-  const name = inputName.value.trim();
-  const userId = inputId.value.trim();
-  const pw = inputPw.value;
-  const pw2 = inputPwCheck.value;
-  const birth = inputBirth.value;
+    const taken = snap.exists() &&
+        Object.values(snap.val()).some(u => u.profile?.name === name);
 
-  // 1) 기본 검증
-  if (!userId || !name || !fullEmail || !pw || !pw2) {
-    alert("모든 필드를 입력해 주세요!");
-    return;
-  }
-
-  const pwRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
-  if (!pwRegex.test(pw)) {
-    alert("비밀번호는 대소문자, 숫자, 특수문자를 포함해 8자 이상이어야 합니다.");
-    return;
-  }
-
-  if (pw !== pw2) {
-    alert("비밀번호 확인이 일치하지 않습니다!");
-    return;
-  }
-
-  try {
-    // 2) 아이디/이름 중복 체크 (원하면 사용)
-    if (await isFieldDuplicate("userId", userId)) {
-      if (idCheck) idCheck.style.display = "none";
-      if (idError) idError.style.display = "block";
-      alert("이미 사용 중인 아이디입니다.");
-      return;
+    if (taken) {
+        nameCheck.style.display = "none";
+        nameError.style.display = "block";
     } else {
-      if (idCheck) idCheck.style.display = "block";
-      if (idError) idError.style.display = "none";
+        nameCheck.style.display = "block";
+        nameError.style.display = "none";
     }
-
-    if (await isFieldDuplicate("name", name)) {
-      if (nameCheck) nameCheck.style.display = "none";
-      if (nameError) nameError.style.display = "block";
-      alert("이미 사용 중인 이름입니다.");
-      return;
-    } else {
-      if (nameCheck) nameCheck.style.display = "block";
-      if (nameError) nameError.style.display = "none";
-    }
-
-    // 3) Firebase Auth에 계정 생성 (로그인용 ID = 이메일)
-    const cred = await createUserWithEmailAndPassword(auth, fullEmail, pw);
-    const user = cred.user;
-
-    // 4) Auth 쪽 프로필에 displayName 저장
-    await updateProfile(user, { displayName: name });
-
-    // 5) Realtime DB에 유저 프로필 저장
-    const profileRef = ref(db, `users/${user.uid}/profile`);
-    await set(profileRef, {
-      uid: user.uid,
-      userId: userId,     // 네가 join.html에서 쓰는 "아이디"
-      name: name,
-      email: fullEmail,
-      birth: birth,
-      friends: [],
-      joinDate: new Date().toISOString(),
-      recentLogin: null,
-      role: "user",
-    });
-
-    // 6) 첫 가입자면 관리자 등록
-    await setAdminIfFirstUser(user.uid);
-
-    alert("회원가입에 성공했습니다! 이제 로그인 해 주세요.");
-    window.location.href = "login.html";
-  } catch (err) {
-    console.error(err);
-    alert("회원가입 중 오류: " + err.message);
-  }
 });
+
+// ------------------------------------------------------
+// 🔥 2) 이메일 중복 체크 (Firebase Auth)
+// ------------------------------------------------------
+inputEmail.addEventListener("keyup", async () => {
+    const email = inputEmail.value.trim();
+
+    emailCheck.style.display = "none";
+    emailError.style.display = "none";
+    emailFormatError.style.display = "none";
+
+    // 이메일 형식 검사
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        emailFormatError.style.display = "block";
+        return;
+    }
+
+    try {
+        const methods = await fetchSignInMethodsForEmail(auth, email);
+
+        if (methods.length > 0) {
+            emailError.style.display = "block"; // 이미 존재
+        } else {
+            emailCheck.style.display = "block"; // 사용 가능
+        }
+
+    } catch (err) {
+        console.error(err);
+    }
+});
+
+// ------------------------------------------------------
+// 🔥 3) 비밀번호 규칙 검사
+// ------------------------------------------------------
+inputPw.addEventListener("keyup", () => {
+    const pw = inputPw.value;
+
+    const ok = /[A-Z]/.test(pw) &&
+               /[a-z]/.test(pw) &&
+               /\d/.test(pw) &&
+               /[!@#$%^&*]/.test(pw) &&
+               pw.length >= 8;
+
+    if (ok) {
+        pwCheck.style.display = "block";
+        pwError.style.display = "none";
+    } else {
+        pwCheck.style.display = "none";
+        pwError.style.display = "block";
+    }
+});
+
+// ------------------------------------------------------
+// 🔥 4) 비밀번호 확인 검사
+// ------------------------------------------------------
+inputPwCheck.addEventListener("keyup", () => {
+    if (inputPw.value === inputPwCheck.value) {
+        pwSameCheck.style.display = "block";
+        pwSameError.style.display = "none";
+    } else {
+        pwSameCheck.style.display = "none";
+        pwSameError.style.display = "block";
+    }
+});
+
+// ------------------------------------------------------
+// 🔥 5) 첫 가입자는 관리자 등록
+// ------------------------------------------------------
+async function setAdminIfFirstUser(uid) {
+    const adminRef = ref(db, "admin/owner");
+    const snap = await get(adminRef);
+
+    if (!snap.exists()) {
+        await set(adminRef, uid);
+        console.log("관리자 계정 설정됨:", uid);
+    }
+}
+
+// ------------------------------------------------------
+// 🔥 6) 회원가입 실행
+// ------------------------------------------------------
+document.getElementById("signupForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // 오류가 있으면 중단
+    if (
+        nameError.style.display === "block" ||
+        emailError.style.display === "block" ||
+        emailFormatError.style.display === "block" ||
+        pwError.style.display === "block" ||
+        pwSameError.style.display === "block"
+    ) {
+        alert("입력하신 정보를 다시 확인해주세요!");
+        return;
+    }
+
+    const email = inputEmail.value.trim();
+    const password = inputPw.value.trim();
+    const name = inputName.value.trim();
+    const birth = inputBirth.value.trim();
+
+    try {
+        // 1) Auth에 계정 생성
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const user = cred.user;
+
+        // 2) displayName 업데이트
+        await updateProfile(user, { displayName: name });
+
+        // 3) DB에 프로필 저장
+        await set(ref(db, "users/" + user.uid + "/profile"), {
+            id: user.uid,
+            name,
+            email,
+            birth,
+            friends: [],
+            joinDate: new Date().toISOString(),
+            recentLogin: null,
+            role: "user"
+        });
+
+        // 4) 첫 사용자 = 관리자
+        await setAdminIfFirstUser(user.uid);
+
+        alert("회원가입 성공!");
+        window.location.href = "login.html";
+
+    } catch (err) {
+        console.error(err);
+        alert("회원가입 중 오류 발생: " + err.message);
+    }
+});
+
 
