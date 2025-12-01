@@ -227,7 +227,6 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
     const password = inputPw.value.trim();
     const name = inputName.value.trim();
     const birth = inputBirth.value.trim();
-    const userId = inputId.value.trim();
 
     try {
         // 1) Auth 계정 생성
