@@ -19,6 +19,7 @@ body, html {
 .draw-header h1 {
   font-size: 22px;
   margin: 0;
+  font-family: "Jua", sans-serif !important;
 }
 
 .back-btn,
@@ -28,6 +29,7 @@ body, html {
   background: #fff;
   border-radius: 10px;
   cursor: pointer;
+  font-family: "Jua", sans-serif !important;
 }
 
 .draw-main {
